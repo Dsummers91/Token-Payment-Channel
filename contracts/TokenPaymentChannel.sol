@@ -25,14 +25,14 @@ contract TokenPaymentChannel {
   /**
     @notice Participant must approve token contract to transfer tokens prior to opening channel
     @dev Opens a payment channel keeping the tokens within this contract as escrow
-    @param _channelHash Hash of channel information
    */
-  function openChannel(bytes32 _channelHash, address _tokenAddress, uint256 _tokenAmount) 
-    public returns (bool success) 
+  function openChannel(address _tokenAddress, uint256 _tokenAmount) 
+    public returns (bytes32 channelHash) 
   {
+    bytes32 _channelHash = keccak256(_tokenAddress, _tokenAmount, msg.sender);
     require(Token(_tokenAddress).transferFrom(msg.sender, this, _tokenAmount));
     channels[_channelHash] = Channel(_tokenAddress, _tokenAmount, false, msg.sender);
-    return true;
+    return _channelHash;
   }
 
   /**
@@ -64,15 +64,34 @@ contract TokenPaymentChannel {
   /**
     @dev After alotted time has passed since voidChannel has been called without 
    */
-   function finalizeVoidChannel() {
+  function finalizeVoidChannel() {
 
-   }
+  }
 
   /**
     @notice Since owner has a signed hash from participant, can take his word as law
     @dev If Owner has a signed hash from participant and he tries to void channel, owner can counter
    */
-   function counterVoidChannel() {
+  function counterVoidChannel() {
 
-   }
+  }
+
+   /**
+    @dev returns channel information
+    */
+  function channel(bytes32 _channelHash) public view returns (address, uint256, bool, address) {
+    Channel _channel = channels[_channelHash];
+    return (_channel.tokenAddress, _channel.tokenAmount, _channel.isClosed, _channel.participant);
+  }
+
+
+  modifier onlyOwner {
+    require(msg.sender == owner);
+    _;
+  }
+
+  modifier onlyParticipant(bytes32 _channelHash) {
+    require(msg.sender == owner);
+    _;
+  }
 }
