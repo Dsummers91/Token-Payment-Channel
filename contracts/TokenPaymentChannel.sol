@@ -26,12 +26,13 @@ contract TokenPaymentChannel {
     @notice Participant must approve token contract to transfer tokens prior to opening channel
     @dev Opens a payment channel keeping the tokens within this contract as escrow
    */
-  function openChannel(address _tokenAddress, uint256 _tokenAmount) 
+  function openChannel(address _tokenAddress, uint256 _tokenAmount, uint8 _v, bytes32 _r, bytes32 _s) 
     public returns (bytes32 channelHash) 
   {
     bytes32 _channelHash = keccak256(_tokenAddress, _tokenAmount, msg.sender);
     require(Token(_tokenAddress).transferFrom(msg.sender, this, _tokenAmount));
     channels[_channelHash] = Channel(_tokenAddress, _tokenAmount, false, msg.sender);
+    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", _channelHash), _v, _r, _s) == owner);
     return _channelHash;
   }
 
@@ -82,6 +83,10 @@ contract TokenPaymentChannel {
   function channel(bytes32 _channelHash) public view returns (address, uint256, bool, address) {
     Channel _channel = channels[_channelHash];
     return (_channel.tokenAddress, _channel.tokenAmount, _channel.isClosed, _channel.participant);
+  }
+
+  function getChannelHash(address _tokenAddress, uint256 _tokenAmount, address _account) public view returns(bytes32) {
+    return keccak256(_tokenAddress, _tokenAmount, _account);
   }
 
 

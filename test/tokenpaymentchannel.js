@@ -14,13 +14,23 @@ contract('TokenPaymentChannel', async (accounts) => {
 
   it('should be able to create a channel', async () => {
     let tokenAmount = 5e18;
-    let channelHash = await contract.openChannel.call(token.address, tokenAmount);
-    await contract.openChannel(token.address, tokenAmount);
+
+    let channelHash = await contract.getChannelHash(token.address, tokenAmount, accounts[0]);
+
+    let signedChannelHash = web3.eth.sign(dappOwner, channelHash);
+    let r = signedChannelHash.substr(0,66) 
+    let s = "0x" + signedChannelHash.substr(66,64);
+    let v = +signedChannelHash.substr(130)+27;
+
+    await contract.openChannel(token.address, tokenAmount, v, r, s);
 
     let channel = await contract.channel(channelHash);
+    assert.equal(channel[0], token.address);
+    assert.deepEqual(channel[1], web3.toBigNumber(tokenAmount));
+    assert.isTrue(!channel[2]);
+    assert.equal(channel[3], accounts[0], 'participant is not first account');
 
-    console.log(channel);
     let contractTokenBalance = await token.balanceOf(contract.address);
-    console.log(contractTokenBalance);
+    assert.deepEqual(contractTokenBalance, web3.toBigNumber(tokenAmount));
   });
 });
