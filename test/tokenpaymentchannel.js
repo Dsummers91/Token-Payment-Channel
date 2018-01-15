@@ -27,7 +27,7 @@ contract('TokenPaymentChannel', async (accounts) => {
     let channel = await contract.channel(channelHash);
     assert.equal(channel[0], token.address);
     assert.deepEqual(channel[1], web3.toBigNumber(tokenAmount));
-    assert.isTrue(!channel[2]);
+    assert.equal(channel[2], 0);
     assert.equal(channel[3], accounts[0], 'participant is not first account');
 
     let contractTokenBalance = await token.balanceOf(contract.address);
