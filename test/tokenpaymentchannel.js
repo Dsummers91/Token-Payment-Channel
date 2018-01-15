@@ -33,4 +33,38 @@ contract('TokenPaymentChannel', async (accounts) => {
     let contractTokenBalance = await token.balanceOf(contract.address);
     assert.deepEqual(contractTokenBalance, web3.toBigNumber(tokenAmount));
   });
+
+
+  it('should be able to close a channel without any transaction within it', async() => {
+    let tokenAmount = 5e18;
+    let channelHash = await contract.getChannelHash(token.address, tokenAmount, accounts[0]);
+
+
+    let signedChannelHash = web3.eth.sign(dappOwner, channelHash);
+    let r = signedChannelHash.substr(0,66) 
+    let s = "0x" + signedChannelHash.substr(66,64);
+    let v = +signedChannelHash.substr(130)+27;
+
+
+    let participantTokenBalance = await token.balanceOf(accounts[0]);
+    assert.deepEqual(participantTokenBalance, web3.toBigNumber(95e18));
+
+    let contractTokenBalance = await token.balanceOf(contract.address);
+    assert.deepEqual(contractTokenBalance, web3.toBigNumber(5e18));
+
+    await contract.closeChannel(channelHash, 5e18, channelHash, v, r, s);
+    participantTokenBalance = await token.balanceOf(accounts[0]);
+    assert.deepEqual(participantTokenBalance, web3.toBigNumber(100e18));
+
+    contractTokenBalance = await token.balanceOf(contract.address);
+    assert.deepEqual(contractTokenBalance, web3.toBigNumber(0));
+
+
+    let channel = await contract.channel(channelHash);
+    assert.equal(channel[2], 2, 'Channel isn\'t closed');
+  })
+
+  it('should be able to close a channel with transaction within it', async() => {
+    
+  })
 });

@@ -52,13 +52,13 @@ contract TokenPaymentChannel {
     @param _s elliptic curve signature S
    */
   function closeChannel(bytes32 _channelHash, uint256 _refundAmount, bytes32 _channelCloseHash, uint8 _v, bytes32 _r, bytes32 _s) 
-    public returns (bool success)
+    public onlyParticipant(_channelHash) returns (bool success)
   {
+    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", _channelCloseHash), _v, _r, _s) == owner);
     bytes32 _hash = keccak256(_channelHash, _refundAmount);
-    require(_channelCloseHash == _hash);
-    require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", _hash), _v, _r, _s) == msg.sender);
     Channel storage _channel = channels[_channelHash];
     _channel.state = State.Closed;
+    require(_channelCloseHash == _hash || (_channelCloseHash == _channelHash && _refundAmount == _channel.tokenAmount));
     require(Token(_channel.tokenAddress).transfer(_channel.participant, _refundAmount));
     require(Token(_channel.tokenAddress).transfer(owner, _channel.tokenAmount - _refundAmount));
     return true;
@@ -99,6 +99,10 @@ contract TokenPaymentChannel {
     return keccak256(_tokenAddress, _tokenAmount, _account);
   }
 
+  function getChannelCloseHash(bytes32 _channelHash, uint256 _refundAmount) public view returns(bytes32) {
+    return keccak256(_channelHash, _refundAmount);
+  }
+
 
   modifier onlyOwner {
     require(msg.sender == owner);
@@ -106,7 +110,7 @@ contract TokenPaymentChannel {
   }
 
   modifier onlyParticipant(bytes32 _channelHash) {
-    require(msg.sender == owner);
+    require(msg.sender == channels[_channelHash].participant);
     _;
   }
 }
