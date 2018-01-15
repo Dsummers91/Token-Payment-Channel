@@ -45,13 +45,17 @@ contract TokenPaymentChannel {
     @param _r elliptic curve signature R
     @param _s elliptic curve signature S
    */
-  function closeChannel(bytes32 _channelHash, uint256 _refundAmount, bytes32 _channelCloseHash, uint8 _v, bytes32 _r, bytes32 _s) {
+  function closeChannel(bytes32 _channelHash, uint256 _refundAmount, bytes32 _channelCloseHash, uint8 _v, bytes32 _r, bytes32 _s) 
+    public returns (bool success)
+  {
     bytes32 _hash = keccak256(_channelHash, _refundAmount);
     require(_channelCloseHash == _hash);
     require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", _hash), _v, _r, _s) == msg.sender);
-    Channel _channel = channels[_channelHash];
+    Channel storage _channel = channels[_channelHash];
+    _channel.isClosed = true;
     require(Token(_channel.tokenAddress).transfer(_channel.participant, _refundAmount));
     require(Token(_channel.tokenAddress).transfer(owner, _channel.tokenAmount - _refundAmount));
+    return true;
   }
 
   /**
